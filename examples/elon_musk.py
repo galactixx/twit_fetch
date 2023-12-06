@@ -4,10 +4,10 @@ from twitfetch.fetch import TwitFetch
 
 def main():
     """
-    Fetch all of Elon Musk's Tweets in the last day.
+    Fetch all of Elon Musk's Tweets in the last two days.
     """
 
-    # Get today's date
+    # Get date two days ago
     today = datetime.now()
     two_days_ago = today - timedelta(days=2)
     date_two_days_ago = two_days_ago.strftime('%Y-%m-%d')

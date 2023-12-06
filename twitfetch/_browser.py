@@ -10,7 +10,7 @@ class PlaywrightBrowser:
             self,
             headless: bool = False,
             delay: float = 0.5,
-            timeout: int = 5000):
+            timeout: int = 10000):
         self._delay = delay
         self._timeout = timeout
         self._browser = (
@@ -25,8 +25,8 @@ class PlaywrightBrowser:
             self._page.wait_for_function("document.readyState === 'complete'")
             time.sleep(self._delay)
         except TimeoutError:
-            return
-        
+            pass
+
     def scroll_down(self) -> None:
         self._page.evaluate("window.scrollBy(0, 1000)")
         self._page.wait_for_timeout(2000)
@@ -43,6 +43,10 @@ class PlaywrightBrowser:
     def go_to_page(self, url: str) -> None:
         self._page.goto(url, wait_until='load', timeout=10000)
         self._wait_for_load()
+
+    def go_back_page(self) -> None:
+        self._page.go_back()
+        self._page.wait_for_timeout(2000)
 
     def exit_browser(self) -> None:
         self._browser.close()

@@ -7,7 +7,9 @@ import pytz
 from twitfetch._static import DATE_FORMAT
 
 def convert_string_to_datetime(date: Optional[str]) -> datetime:
-    """Convert parameter string into localized datetime object."""
+    """
+    Convert parameter string into localized datetime object.
+    """
 
     if date is None: return None
     return pytz.utc.localize(
