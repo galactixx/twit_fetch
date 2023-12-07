@@ -2,15 +2,16 @@ import time
 
 from playwright.sync_api import (
     sync_playwright, 
-    TimeoutError)
+    TimeoutError
+)
 
 class PlaywrightBrowser:
     """Playwright browsing interface with helper methods."""
     def __init__(
-            self,
-            headless: bool = False,
-            delay: float = 0.5,
-            timeout: int = 10000):
+        self,
+        headless: bool = False,
+        delay: float = 0.5,
+        timeout: int = 10000):
         self._delay = delay
         self._timeout = timeout
         self._browser = (
@@ -35,8 +36,8 @@ class PlaywrightBrowser:
         self._page.click(selector)
         self._wait_for_load()
 
-    def type_input(self, tag: str, text: str, selector: str) -> None:
-        self._page.type(f'{tag}[{selector}]', text)
+    def type_input(self, text: str, selector: str) -> None:
+        self._page.type(selector, text)
         self._page.keyboard.press('Enter')
         self._wait_for_load()
 

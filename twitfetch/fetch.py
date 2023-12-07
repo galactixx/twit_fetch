@@ -4,25 +4,25 @@ import time
 
 from bs4 import BeautifulSoup
 
+from twitfetch._parse import Parse
 from twitfetch._browser import PlaywrightBrowser
 from twitfetch._utils import (
     clean_text,
     convert_string_to_datetime,
-    from_iso_format
 )
 from twitfetch._static import (
-    ATTRIBUTE_DATETIME,
     ATTRIBUTE_TEXT,
     ATTRIBUTE_TEXT_RESULT,
     ATTRIBUTE_TEXT_SHOW_MORE,
     LOGIN_INFO_TAG,
-    TAG_TIME,
     TAG_TWEET,
     URL_TWITTER_LOGIN
 )
 
 class TwitFetch:
-    """"""
+    """
+    Given a Twitter account, finds and returns all tweets within a specified time period.
+    """
     def __init__(
         self, 
         account: str, 
@@ -68,19 +68,15 @@ class TwitFetch:
         for info in login_pipeline:
 
             # Retrieve page source
-            content = self._browser.page_to_dom()
+            page_source = self._browser.page_to_dom()
 
             # Parse and find label
-            soup = BeautifulSoup(content, "html.parser")
-            element = soup.find(LOGIN_INFO_TAG)
-            element_attr = ' '.join(element.get('class'))
+            parser = Parse(page_source=page_source)
+            attribute, result = parser.find_attribute(tag=LOGIN_INFO_TAG, attribute='class')
             time.sleep(2)
 
-            self._browser.type_input(
-                tag='input',
-                text=info, 
-                selector=f'class="{element_attr}"'
-            )
+            selector = parser.css_selector(tag='input', attribute=attribute, result=result)
+            self._browser.type_input(text=info, selector=selector)
             
             # Wait some time after logging in
             time.sleep(2)
@@ -94,36 +90,38 @@ class TwitFetch:
         tweets_collected = []
         
         while True:
-            content = self._browser.page_to_dom()
-            soup = BeautifulSoup(content, "html.parser")
+            page_source = self._browser.page_to_dom()
+            parser = Parse(page_source=page_source)
 
-            tweets: List[BeautifulSoup] = soup.find_all(TAG_TWEET)
-
+            # Find all tweets
+            tweets = parser.find_elements(tag=TAG_TWEET)
+            
             for tweet in tweets:
+                parser.load_element(element=tweet)
+
                 if self._account_at in tweet.text and 'Pinned' not in tweet.text:
-                    date_tags: List[BeautifulSoup] = tweet.find_all(TAG_TIME)
-                    date = from_iso_format(
-                        date=date_tags[0].get(ATTRIBUTE_DATETIME)
-                    )
+                    date = parser.find_relevant_datetime()
 
                     if date not in dates_parsed:
 
                         # Detect if tweet is cut-off
-                        show_more_element = tweet.find('div', {ATTRIBUTE_TEXT: ATTRIBUTE_TEXT_SHOW_MORE})
-
+                        show_more_element = parser.find_element(
+                            tag='div', attribute={ATTRIBUTE_TEXT: ATTRIBUTE_TEXT_SHOW_MORE}
+                        )
+                        
                         # If so, then go to full-length tweet
                         if show_more_element is not None:
-                            a_tags: List[BeautifulSoup] = tweet.find_all('a')
-                            href_attributes = [i.get('href') for i in a_tags if i is not None]
-                            post_link = [i for i in href_attributes if '/status/' in i][0]
+                            show_more_link = parser.find_show_more()
 
                             # Click on href link
-                            self._browser.click_on_selection(selector=f'a[href="{post_link}"]')
+                            self._browser.click_on_selection(
+                                selector=parser.css_selector(tag='a', attribute='href', result=show_more_link))
+                                                            
+                            # Find new tweet on "Show More" page
+                            page_source_show_more = self._browser.page_to_dom()
+                            parser_show_more = Parse(page_source=page_source_show_more)
+                            tweet = parser_show_more.find_element(tag=TAG_TWEET)
                             
-                            content = self._browser.page_to_dom()
-                            soup = BeautifulSoup(content, "html.parser")
-                            tweet = soup.find(TAG_TWEET)
-
                             time.sleep(1)
                             self._browser.go_back_page()
 
@@ -141,21 +139,28 @@ class TwitFetch:
         """
         
         tweets_scraped: List[dict] = []
+        parser = Parse()
 
         # Login to Twitter account
         self._twitter_login()
+
+        # Go to account page
         self._browser.go_to_page(self._account_url)
         time.sleep(1)
 
+        # Retrieve tweets and iterate through
         tweets = self._collect_raw_tweets()
         for tweet in tweets:
-            date_tags: List[BeautifulSoup] = tweet.find_all(TAG_TIME)
-            date_posted = from_iso_format(
-                date=date_tags[-1].get(ATTRIBUTE_DATETIME)
+            parser.load_element(element=tweet)
+
+            # Find date posted
+            date_posted = parser.find_relevant_datetime()
+            
+            text_element = parser.find_element(
+                tag='div',
+                attribute={ATTRIBUTE_TEXT: ATTRIBUTE_TEXT_RESULT}
             )
             
-            text_element = tweet.find('div', {ATTRIBUTE_TEXT: ATTRIBUTE_TEXT_RESULT})
-
             if text_element is not None:
                 text = text_element.text
             else:
