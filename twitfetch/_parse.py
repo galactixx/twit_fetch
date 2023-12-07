@@ -80,9 +80,11 @@ class Parse:
 
         date_tags = self.find_elements(tag=TAG_TIME)
         dates = [
-            date.get(ATTRIBUTE_DATETIME) for date in date_tags
+            from_iso_format(
+                date=date.get(ATTRIBUTE_DATETIME)
+            ) for date in date_tags
         ]
         
         # Convert date from iso format
-        date = from_iso_format(date=max(dates))
+        date = max(dates)
         return date

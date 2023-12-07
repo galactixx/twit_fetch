@@ -11,6 +11,7 @@ from twitfetch._utils import (
     convert_string_to_datetime,
 )
 from twitfetch._static import (
+    ATTRIBUTE_SOCIAL_CONTEXT,
     ATTRIBUTE_TEXT,
     ATTRIBUTE_TEXT_RESULT,
     ATTRIBUTE_TEXT_SHOW_MORE,
@@ -98,8 +99,16 @@ class TwitFetch:
             
             for tweet in tweets:
                 parser.load_element(element=tweet)
+                pinned = parser.find_element(
+                    tag='div',
+                    attribute={ATTRIBUTE_TEXT: ATTRIBUTE_SOCIAL_CONTEXT}
+                )
+                repost = parser.find_element(
+                    tag='span',
+                    attribute={ATTRIBUTE_TEXT: ATTRIBUTE_SOCIAL_CONTEXT}
+                )
 
-                if self._account_at in tweet.text and 'Pinned' not in tweet.text:
+                if self._account_at in tweet.text and pinned is None and repost is None:
                     date = parser.find_relevant_datetime()
 
                     if date not in dates_parsed:
@@ -169,7 +178,7 @@ class TwitFetch:
             # Consolidate tweet info
             tweet_info = {
                 'author': self.account,
-                'date_posted': date_posted,
+                'date_posted': date_posted.isoformat(),
                 'content': clean_text(text=text)
             }
 

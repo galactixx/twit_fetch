@@ -9,6 +9,8 @@ URL_TWITTER_LOGIN = 'https://twitter.com/i/flow/login'
 TAG_TIME = 'time'
 TAG_TWEET = 'article'
 ATTRIBUTE_TEXT = 'data-testid'
+
+ATTRIBUTE_SOCIAL_CONTEXT = 'socialContext'
 ATTRIBUTE_TEXT_RESULT = 'tweetText'
 ATTRIBUTE_TEXT_SHOW_MORE = 'tweet-text-show-more-link'
 ATTRIBUTE_DATETIME = 'datetime'
