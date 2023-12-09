@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from datetime import datetime
 
 from bs4 import BeautifulSoup
@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 from twitfetch._utils import from_iso_format
 from twitfetch.static import (
     Element,
+    SOCIAL_CONTEXTS,
+    TWEET_SOCIAL_CONTEXT,
     TWEET_TEXT
 )
 
@@ -46,6 +48,8 @@ class Parse:
 
         if element.attribute is not None and element.attribute_value is not None:
             return self._soup.find(element.tag, {element.attribute: element.attribute_value})
+        elif element.tag is None:
+            return self._soup.find({element.attribute: element.attribute_value})
         else:
             return self._soup.find(element.tag)
 
@@ -56,6 +60,8 @@ class Parse:
 
         if element.attribute is not None and element.attribute_value is not None:
             return self._soup.find_all(element.tag, {element.attribute: element.attribute_value})
+        elif element.tag is None:
+            return self._soup.find_all({element.attribute: element.attribute_value})
         elif element.attribute is not None:
             return self._soup.find_all(element.tag, {element.attribute: True}) 
         else:
@@ -77,30 +83,33 @@ class Parse:
 
         return len(number_of_instances_of_text) > 1
 
-    def find_show_more(self, element: Element) -> Element:
-        """
-        Find and determine appropriate show more link.
-        """
-
-        a_tags = self.find_elements(element=element)
-        href_attributes = [i.get(element.attribute) for i in a_tags]
-        element.attribute_value = [
-            i for i in href_attributes if '/status/' in i
-        ][0]
-
-        return element
-
-    def find_relevant_datetime(self, element: Element) -> datetime:
+    def find_relevant_datetime(self, element: Element) -> Tuple[BeautifulSoup, datetime]:
         """
         From time tag in each tweet, determine relevant datetime to pull.
         """
 
-        date_tags = self.find_elements(element=element)
-        dates = [
-            from_iso_format(date=date.get(element.attribute)
-            ) for date in date_tags
-        ]
-        
-        # Convert date from iso format
-        date = max(dates)
-        return date
+        date_tag = self.find_element(element=element)
+        date_time = from_iso_format(date=date_tag.get(element.attribute))
+
+        return date_tag, date_time
+    
+    def find_post_link(self, element: Element, date_tag: BeautifulSoup) -> str:
+        """
+        Find post link to be able to expand and view entire content.
+        """
+
+        element.attribute_value = date_tag.get(element.attribute)
+        return element
+    
+    @property
+    def social_contexts(self) -> bool:
+        """
+        Finds the social context element and ensures that it is not a repost or pinned tweet.
+        """
+
+        social_contexts = self.find_elements(element=TWEET_SOCIAL_CONTEXT)
+        is_social_context = any(
+            element.text.strip().lower() in SOCIAL_CONTEXTS for element in social_contexts
+            if element
+        )
+        return is_social_context

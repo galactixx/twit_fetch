@@ -25,7 +25,7 @@ def clean_text(text: str) -> str:
     text = text.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
     
     # Replace multiple spaces with a single space
-    text = re.sub(' +', ' ', text)
+    text = re.sub(' +', ' ', text).strip()
 
     return text
 

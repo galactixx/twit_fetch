@@ -5,9 +5,9 @@ from dataclasses import dataclass
 @dataclass
 class Element:
     """
-    Data structure to hold key characteristic of significant html tags.
+    Data structure to hold key characteristic of significant html tags or attributes.
     """
-    tag: str
+    tag: Optional[str] = None
     attribute: Optional[str] = None
     attribute_value: Optional[str] = None
 

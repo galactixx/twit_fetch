@@ -14,10 +14,8 @@ from twitfetch.static import (
     LOGIN_ERROR,
     TWEET,
     TWEET_DATE,
-    TWEET_PINNED,
-    TWEET_REPOST,
+    TWEET_POST_LINK,
     TWEET_SHOW_MORE,
-    TWEET_SHOW_MORE_LINK,
     TWEET_TEXT,
     URL_TWITTER_LOGIN
 )
@@ -116,36 +114,38 @@ class TwitFetch:
             for tweet in tweets:
                 parser.load_element(element=tweet)
 
-                # Detect irellevant tweets to ignore
-                pinned = parser.find_element(element=TWEET_PINNED)
-                repost = parser.find_element(element=TWEET_REPOST)
-
-                if self._account_at in tweet.text and pinned is None and repost is None:
-                    date_posted = parser.find_relevant_datetime(element=TWEET_DATE)
+                if self._account_at in tweet.text and not parser.social_contexts:
+                    date_tag, date_posted = parser.find_relevant_datetime(element=TWEET_DATE)
                     text_element = parser.find_element(element=TWEET_TEXT)
 
-                    if date_posted not in dates_parsed:
+                    if date_posted not in dates_parsed and text_element is not None:
 
-                        # Detect if tweet is cut-off
+                        # Detect if tweet is cut-off and has a "Show more" link
                         show_more_element = parser.find_element(element=TWEET_SHOW_MORE)
 
                         # If so, then go to full-length tweet
                         if show_more_element is not None:
                             share_parent = show_more_element.parent == text_element.parent
+
                             if share_parent:
-                                
-                                element = parser.find_show_more(element=TWEET_SHOW_MORE_LINK)
+                                post_link_element = parser.find_post_link(
+                                    element=TWEET_POST_LINK,
+                                    date_tag=date_tag.parent
+                                )
 
                                 # Click on href link
                                 self._browser.click_on_selection(
-                                    selector=parser.css_selector(element=element)
+                                    selector=parser.css_selector(element=post_link_element)
                                 )
                                                                 
                                 # Find new tweet on "Show More" page
                                 page_source_show_more = self._browser.page_to_dom()
                                 parser_show_more = Parse(page_source=page_source_show_more)
-                                tweet = parser_show_more.find_element(element=TWEET)
-                                text_element = parser_show_more.find_element(element=TWEET_TEXT)
+                                parser.load_element(
+                                    element=parser_show_more.find_element(element=TWEET)
+                                )
+
+                                text_element = parser.find_element(element=TWEET_TEXT)
                                 
                                 time.sleep(1)
                                 self._browser.go_back_page()
