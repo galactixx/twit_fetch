@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytz
 
-from twitfetch._static import DATE_FORMAT
+from twitfetch.static import DATE_FORMAT
 
 def convert_string_to_datetime(date: Optional[str]) -> datetime:
     """

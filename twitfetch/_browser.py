@@ -42,7 +42,7 @@ class PlaywrightBrowser:
         self._wait_for_load()
 
     def go_to_page(self, url: str) -> None:
-        self._page.goto(url, wait_until='load', timeout=10000)
+        self._page.goto(url, wait_until='load', timeout=20000)
         self._wait_for_load()
 
     def go_back_page(self) -> None:
