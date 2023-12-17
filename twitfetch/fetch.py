@@ -1,10 +1,15 @@
-from typing import Dict, List, Optional
+from typing import Optional
 import time
+import json
 
 from twitfetch.data_structures import TweetInfo
 from twitfetch.errors import InvalidLoginError
-from twitfetch._parse import Parse
+from twitfetch._parse import ParseDOM
 from twitfetch._browser import PlaywrightBrowser
+from twitfetch.typing import (
+    GraphQLResponse, 
+    Tweet
+)
 from twitfetch._utils import (
     clean_text,
     convert_string_to_datetime,
@@ -32,7 +37,8 @@ class TwitFetch:
         time_start: Optional[str] = None,
         time_end: Optional[str] = None,
         tweet_limit: int = 10,
-        headless: bool = False):
+        headless: bool = False
+    ):
         self._login_username = login_username
         self._login_password = login_password
         self.account = account
@@ -51,7 +57,20 @@ class TwitFetch:
         # Instantiate playwright browser
         self._browser = PlaywrightBrowser(headless=headless)
 
-        self.tweets: List[Dict[str, str]] = []
+        self.tweets: Tweet = []
+
+        self.twitter_login()
+
+        self._graphql_response = None
+
+    def _log_graphql_response(self, response: GraphQLResponse) -> None:
+        """
+        Intercepts and logs graphql response, along with extracting the json.
+        """
+
+        if '/graphql' in response.url and 'UserTweets' in response.url:
+            if response.status == 200:
+                self._graphql_response = response.json()
 
     def twitter_login(self) -> None:
         """
@@ -74,7 +93,7 @@ class TwitFetch:
             page_source = self._browser.page_to_dom()
 
             # Parse and find label
-            parser = Parse(page_source=page_source)
+            parser = ParseDOM(page_source=page_source)
             element = parser.find_attribute(element=LOGIN)
             time.sleep(2)
 
@@ -89,14 +108,14 @@ class TwitFetch:
             page_source_new = self._browser.page_to_dom()
 
             # Check for error element in new page source
-            alerts = Parse(page_source=page_source_new).find_element(
+            alerts = ParseDOM(page_source=page_source_new).find_element(
                 element=LOGIN_ERROR
             )
 
             if alerts:
                 raise InvalidLoginError()
     
-    def _collect_raw_tweets(self) -> List[Dict[str, str]]:
+    def _collect_raw_tweets(self) -> None:
         """
         Collect all raw tweets by scrolling down until appropriate datetime or limit is reached.
         """
@@ -106,7 +125,7 @@ class TwitFetch:
         
         while True:
             page_source = self._browser.page_to_dom()
-            parser = Parse(page_source=page_source)
+            parser = ParseDOM(page_source=page_source)
 
             # Find all tweets
             tweets = parser.find_elements(element=TWEET)
@@ -122,16 +141,16 @@ class TwitFetch:
 
                         # Detect if tweet is cut-off and has a "Show more" link
                         show_more_element = parser.find_element(element=TWEET_SHOW_MORE)
+                        post_link_element = parser.find_post_link(
+                            element=TWEET_POST_LINK,
+                            date_tag=date_tag.parent
+                        )
 
                         # If so, then go to full-length tweet
                         if show_more_element is not None:
                             share_parent = show_more_element.parent == text_element.parent
 
                             if share_parent:
-                                post_link_element = parser.find_post_link(
-                                    element=TWEET_POST_LINK,
-                                    date_tag=date_tag.parent
-                                )
 
                                 # Click on href link
                                 self._browser.click_on_selection(
@@ -140,7 +159,7 @@ class TwitFetch:
                                                                 
                                 # Find new tweet on "Show More" page
                                 page_source_show_more = self._browser.page_to_dom()
-                                parser_show_more = Parse(page_source=page_source_show_more)
+                                parser_show_more = ParseDOM(page_source=page_source_show_more)
                                 parser.load_element(
                                     element=parser_show_more.find_element(element=TWEET)
                                 )
@@ -156,13 +175,19 @@ class TwitFetch:
                         else:
                             text = ''
 
+                        # Tweet info attributes
+                        tweet_id = parser.find_tweet_id(post_link=post_link_element)
+                        content = clean_text(text=text)
+                        is_quote = parser.is_quoted_tweet()
+
                         dates_parsed.append(date_posted)
                         tweets_collected.append(
                             TweetInfo(
+                                tweet_id=tweet_id,
                                 author=self.account,
                                 date_posted=date_posted.isoformat(),
-                                content=clean_text(text=text),
-                                is_quote=parser.is_quoted_tweet()
+                                content=content,
+                                is_quote=is_quote
                             )
                         )
 
@@ -172,13 +197,32 @@ class TwitFetch:
             
             self._browser.scroll_down()
                 
-    def fetch_tweets(self) -> None:
+    def _collect_raw_tweets_graphql(self) -> None:
         """
-        Fetch all tweets within a time period from a given Twitter account.
+        Collect all raw tweets by intercepting and parsing the GraphQL API response.
         """
 
-        # Login to Twitter account
-        self.twitter_login()
+        # Listen for all responses
+        self._browser.page.on('response', self._log_graphql_response)
+
+        # Go to account page
+        self._browser.go_to_page(url=self._account_url, wait_for_tweet=True)
+        time.sleep(1)
+
+        # Loop until the response is found
+        while self._graphql_response is None:
+            time.sleep(0.5)
+
+        # Write the JSON data to a file
+        with open('response.json', 'w') as f:
+            json.dump(self._graphql_response, f)
+
+        self._browser.exit_browser()
+
+    def fetch_tweets(self) -> None:
+        """
+        Fetch all tweets within a time period for a given Twitter account.
+        """
 
         # Go to account page
         self._browser.go_to_page(url=self._account_url)
@@ -186,3 +230,12 @@ class TwitFetch:
 
         # Collect and load tweets
         self.tweets = self._collect_raw_tweets()
+        self._browser.exit_browser()
+
+    def fetch_tweets_graphql(self) -> None:
+        """
+        Fetch all tweets using the GraphQL API response.
+        Gathers between a time period for a given Twitter account.
+        """
+
+        self._collect_raw_tweets_graphql()

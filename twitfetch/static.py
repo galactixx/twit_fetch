@@ -16,3 +16,4 @@ TWEET_TEXT = Element(tag='div', attribute='data-testid', attribute_value='tweetT
 TWEET_SHOW_MORE = Element(attribute='data-testid', attribute_value='tweet-text-show-more-link')
 TWEET_POST_LINK = Element(tag='a', attribute='href')
 TWEET_SOCIAL_CONTEXT = Element(attribute='data-testid', attribute_value='socialContext')
+TWEET_ARTICLE = Element(tag='article', attribute='role', attribute_value='article')

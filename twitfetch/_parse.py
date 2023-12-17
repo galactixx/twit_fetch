@@ -11,7 +11,14 @@ from twitfetch.static import (
     TWEET_TEXT
 )
 
-class Parse:
+class ParseGraphQL:
+    """
+    Provides a variety of helper methods for parsing the GraphQL API response.
+    """
+    def __init__(self):
+        pass
+
+class ParseDOM:
     """
     Provides a variety of helper methods for parsing the DOM of a webpage.
     """
@@ -93,13 +100,20 @@ class Parse:
 
         return date_tag, date_time
     
-    def find_post_link(self, element: Element, date_tag: BeautifulSoup) -> str:
+    def find_post_link(self, element: Element, date_tag: BeautifulSoup) -> Element:
         """
         Find post link to be able to expand and view entire content.
         """
 
         element.attribute_value = date_tag.get(element.attribute)
         return element
+    
+    def find_tweet_id(self, post_link: Element) -> int:
+        """
+        Based on post link we can extract the tweet id.
+        """
+
+        return int(post_link.attribute_value.split('/')[-1])
     
     @property
     def social_contexts(self) -> bool:

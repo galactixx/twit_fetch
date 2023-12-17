@@ -20,7 +20,8 @@ def main(
         login_username=username,
         login_password=password,
         account='elonmusk',
-        time_start=date_two_days_ago)
+        time_start=date_two_days_ago
+    )
     twit_fetch.fetch_tweets()
 
     for tweet in twit_fetch.tweets:
