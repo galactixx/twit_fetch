@@ -1,10 +1,27 @@
-import re
 from typing import List, Optional, Union
 from datetime import datetime
 
 import pytz
 
-from twitfetch._constants import DATE_FORMAT
+from twitfetch._constants import TWEET_COLUMNS
+
+def remove_from_dict(dictionary: dict, columns: List[str] = TWEET_COLUMNS) -> dict:
+    """
+    Deletes keys that are not in the specified list of columns.
+
+    Args:
+        dictionary (dict): A dictionary.
+        columns (List[str]): A list of string columns to filter the dictionary keys.
+
+    Returns:
+        dict: The dictionary with the relevant keys.
+    """
+
+    for key in list(dictionary.keys()):
+        if key not in columns:
+            del dictionary[key]
+
+    return dictionary
 
 def convert_string_to_datetime(date: Optional[str]) -> datetime:
     """
@@ -13,34 +30,8 @@ def convert_string_to_datetime(date: Optional[str]) -> datetime:
 
     if date is None: return None
     return pytz.utc.localize(
-        datetime.strptime(date, DATE_FORMAT)
+        datetime.strptime(date, "%Y-%m-%d")
     )
-
-def clean_text(text: str) -> str:
-    """
-    Given a block of text, all new lines and extra spaces are removed.
-    """
-
-    # Replace new lines and tabs with a space
-    text = text.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
-    
-    # Replace multiple spaces with a single space
-    text = re.sub(' +', ' ', text).strip()
-
-    return text
-
-def from_iso_format(date: str) -> datetime:
-    """
-    Convert Twitter formatted ISO string date into datetime object.
-    """
-
-    # Remove the 'Z' at the end, which indicates Zulu (UTC) time
-    date_str = date.replace('Z', '+00:00')
-
-    # Convert to datetime object
-    date_time = datetime.fromisoformat(date_str)
-
-    return date_time
 
 def find_key_in_dict(obj: Union[dict, list], key: str) -> List[dict]:
     """

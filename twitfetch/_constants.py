@@ -2,7 +2,6 @@ from enum import Enum
 
 from twitfetch._data_structures import Element
 
-DATE_FORMAT = "%Y-%m-%d"
 GRAPHQL_ENDPOINT = '/graphql'
 
 RED = '\033[31m'
@@ -73,3 +72,7 @@ class GeneralKeys:
     INSTRUCTIONS = 'instructions'
     ENTRIES = 'entries'
     RETWEET = 'retweeted_status_result'
+
+TWEET_COLUMNS = [
+    getattr(TweetKeys, attr) for attr in dir(TweetKeys) if not attr.startswith("__")
+]
