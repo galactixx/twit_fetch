@@ -1,10 +1,10 @@
 import re
-from typing import Optional
+from typing import List, Optional, Union
 from datetime import datetime
 
 import pytz
 
-from twitfetch.static import DATE_FORMAT
+from twitfetch._constants import DATE_FORMAT
 
 def convert_string_to_datetime(date: Optional[str]) -> datetime:
     """
@@ -41,3 +41,27 @@ def from_iso_format(date: str) -> datetime:
     date_time = datetime.fromisoformat(date_str)
 
     return date_time
+
+def find_key_in_dict(obj: Union[dict, list], key: str) -> List[dict]:
+    """
+    Find all values of a given key within a nested dict or list of dicts.
+    """
+
+    def helper(obj: Union[dict, list], key: str, lst: list) -> list:
+        if not obj:
+            return lst
+
+        if isinstance(obj, list):
+            for e in obj:
+                lst.extend(helper(e, key, []))
+            return lst
+
+        if isinstance(obj, dict) and obj.get(key):
+            lst.append(obj[key])
+
+        if isinstance(obj, dict) and obj:
+            for k in obj:
+                lst.extend(helper(obj[k], key, []))
+        return lst
+
+    return helper(obj, key, [])

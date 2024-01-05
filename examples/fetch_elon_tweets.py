@@ -1,11 +1,10 @@
+import json
+
 from datetime import datetime, timedelta
 
 from twitfetch.fetch import TwitFetch
 
-def main(
-    username: str,
-    password: str,
-    ) -> None:
+def main(username: str, password: str) -> None:
     """
     Fetch all of Elon Musk's Tweets in the last two days.
     """
@@ -19,17 +18,22 @@ def main(
     twit_fetch = TwitFetch(
         login_username=username,
         login_password=password,
-        account='elonmusk',
         time_start=date_two_days_ago
     )
-    twit_fetch.fetch_tweets()
+    
+    twit_fetch.user_tweets(account='elonmusk')
 
     for tweet in twit_fetch.tweets:
         print(tweet)
         print('---------------------------------------')
 
 if __name__ == "__main__":
+
+    # Load in username and password from config.json
+    with open('config.json') as f:
+        config = json.load(f)
+
     main(
-        username='',
-        password='',
+        username=config['username'],
+        password=config['password']
     )

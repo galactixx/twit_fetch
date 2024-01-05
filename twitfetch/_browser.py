@@ -6,7 +6,7 @@ from playwright.sync_api import (
     TimeoutError
 )
 
-from twitfetch.static import TWEET_ARTICLE
+from twitfetch._constants import TWEET_ARTICLE
 
 class PlaywrightBrowser:
     """
@@ -26,6 +26,14 @@ class PlaywrightBrowser:
         )
 
         self.page: Page = self.browser.new_page()
+
+    def refresh(self) -> None:
+        """
+        Refresh page.
+        """
+
+        self.page.reload()
+        self._wait_for_load()
 
     def _wait_for_load(self) -> None:
         """

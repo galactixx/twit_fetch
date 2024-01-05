@@ -28,7 +28,8 @@ class TestLoginUsername(unittest.TestCase):
         twit_fetch = TwitFetch(
             login_username='not a username',
             login_password='not a password',
-            account='elonmusk')
+            account='elonmusk'
+        )
 
         with self.assertRaises(InvalidLoginError):
             twit_fetch.twitter_login()

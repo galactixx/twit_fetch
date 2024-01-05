@@ -4,19 +4,53 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 
 from twitfetch._utils import from_iso_format
-from twitfetch.static import (
-    Element,
-    SOCIAL_CONTEXTS,
-    TWEET_SOCIAL_CONTEXT,
-    TWEET_TEXT
-)
+from twitfetch._data_structures import TweetInfo
+from twitfetch._constants import Element
 
 class ParseGraphQL:
     """
     Provides a variety of helper methods for parsing the GraphQL API response.
     """
-    def __init__(self):
-        pass
+    def __init__(self, response: dict):
+        self._response = response
+
+    def parse_tweets(self) -> List[TweetInfo]:
+        """
+        Parse and consolidate tweet details in response.
+        """
+
+        parsed_tweets = []
+
+        if self._response:
+            for tweet in tweets:
+                instructions = find_key_in_dict(obj=tweet, key=GeneralKeys.INSTRUCTIONS)
+                entries = find_key_in_dict(obj=instructions, key=GeneralKeys.ENTRIES)
+
+                for entry in entries:
+                    tweets_parsed = find_key_in_dict(obj=entry, key=GeneralKeys.LEGACY)
+                    
+                    for parse in tweets_parsed:
+                        if do_remove_retweets:
+                            if parse.get(GeneralKeys.RETWEET):
+                                continue
+
+                        tweet_parsed = remove_from_dict(dictionary=parse)
+
+                        tweet_parsed_user_id = tweet_parsed.get(TweetKeys.USER_ID)
+                        if tweet_parsed_user_id in user_ids:
+
+                            created_at = tweet_parsed.get(TweetKeys.CREATED)
+                            if created_at:
+                                created_at = _format_created_at(created_at=created_at)
+
+                                tweet_parsed[TweetKeys.CREATED] = created_at
+
+                            if do_structured:
+                                parsed_tweets.append(
+                                    _consolidate_tweet_info(tweet=tweet_parsed)
+                                )
+                            else:
+                                parsed_tweets.append(tweet_parsed)
 
 class ParseDOM:
     """
@@ -113,7 +147,7 @@ class ParseDOM:
         Based on post link we can extract the tweet id.
         """
 
-        return int(post_link.attribute_value.split('/')[-1])
+        return post_link.attribute_value.split('/')[-1]
     
     @property
     def social_contexts(self) -> bool:

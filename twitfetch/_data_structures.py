@@ -18,7 +18,7 @@ class TweetInfo:
     Data structure to hold resulting tweet info pulled.
     """
     
-    tweet_id: int
+    tweet_id: str
     author: str
     date_posted: str
     content: str
