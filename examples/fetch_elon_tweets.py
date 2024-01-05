@@ -21,9 +21,9 @@ def main(username: str, password: str) -> None:
         time_start=date_two_days_ago
     )
     
-    twit_fetch.user_tweets(account='elonmusk')
+    tweets = twit_fetch.user_tweets(account='elonmusk')
 
-    for tweet in twit_fetch.tweets:
+    for tweet in tweets:
         print(tweet)
         print('---------------------------------------')
 

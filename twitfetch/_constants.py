@@ -9,8 +9,9 @@ GREEN = '\033[32m'
 WHITE = '\033[0m'
 
 # Twitter URLs
-TWITTER_LOGIN = 'https://twitter.com/i/flow/login/'
-TWITTER_LISTS = 'https://twitter.com/i/lists/'
+URL_TWITTER = 'https://twitter.com'
+URL_TWITTER_LOGIN = 'https://twitter.com/i/flow/login'
+URL_TWITTER_LISTS = 'https://twitter.com/i/lists'
 
 # HTML elements
 LOGIN = Element(tag='input', attribute='class')
@@ -45,12 +46,14 @@ class TweetKeys:
 
     Attributes:
         USER_ID (str): Key for the user ID.
+        USER_NAME (str): Key for the user screen name.
         TWEET_ID (str): Key for the tweet ID.
         CREATED (str): Key for the created datetime.
         CONTENT (str): Key for the tweet content.
     """
 
     USER_ID = 'user_id_str'
+    USER_NAME = 'screen_name'
     TWEET_ID = 'id_str'
     CREATED = 'created_at'
     CONTENT = 'full_text'

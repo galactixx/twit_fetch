@@ -29,16 +29,16 @@ def _format_created_at(created: str) -> datetime:
     return datetime.strptime(created, "%a %b %d %H:%M:%S %z %Y")
 
 def parse_tweets_response(
-    users: Dict[str, str],
     tweets: List[dict],
+    users: List[str],
     do_remove_retweets: bool = False
 ) -> Tweets:
     """
     Given the JSON tweet response from GraphQL, parses data and return tweets.
 
     Args:
-        users (Dict[str, str]): A dictionary containing the user IDs and keys and user names as values.
         tweets (List[dict]): A list of dictionaries corresponding with the GraphQL response.
+        users (Dict[str, str]): A dictionary containing the user IDs and keys and user names as values.
         do_remove_retweets (bool): A boolean indicating whether retweets should be removed.
 
     Returns:
@@ -62,30 +62,31 @@ def parse_tweets_response(
 
                     tweet_parsed = remove_from_dict(dictionary=parse)
 
-                    tweet_parsed_user_id = tweet_parsed.get(TweetKeys.USER_ID)
+                    tweet_parsed_user_name = tweet_parsed.get(TweetKeys.USER_NAME)
+                    if tweet_parsed_user_name:
 
-                    if tweet_parsed_user_id in users:
-                        created = tweet_parsed.get(TweetKeys.CREATED)
-                        if created:
-                            created = _format_created_at(created=created)
+                        if tweet_parsed_user_name in users:
+                            created = tweet_parsed.get(TweetKeys.CREATED)
+                            if created:
+                                created = _format_created_at(created=created)
 
-                            tweet_parsed[TweetKeys.CREATED] = created.isoformat()
+                                tweet_parsed[TweetKeys.CREATED] = created.isoformat()
 
-                        user_id = tweet_parsed_user_id
-                        user_name = users[tweet_parsed_user_id]
-                        tweet_id = tweet_parsed.get(TweetKeys.TWEET_ID)
-                        created = tweet_parsed.get(TweetKeys.CREATED)
-                        content = tweet_parsed.get(TweetKeys.CONTENT)
+                            user_name = tweet_parsed_user_name
+                            user_id = tweet_parsed.get(TweetKeys.USER_ID)
+                            tweet_id = tweet_parsed.get(TweetKeys.TWEET_ID)
+                            created = tweet_parsed.get(TweetKeys.CREATED)
+                            content = tweet_parsed.get(TweetKeys.CONTENT)
 
-                        parsed_tweets.append(
-                            Tweet(
-                                user_id=user_id,
-                                user_name=user_name,
-                                tweet_id=tweet_id,
-                                created=created,
-                                content=content
+                            parsed_tweets.append(
+                                Tweet(
+                                    user_id=user_id,
+                                    user_name=user_name,
+                                    tweet_id=tweet_id,
+                                    created=created,
+                                    content=content
+                                )
                             )
-                        )
 
     return parsed_tweets
 

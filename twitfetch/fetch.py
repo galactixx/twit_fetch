@@ -1,24 +1,28 @@
-from typing import Optional
+from typing import List, Optional
 import time
 
+from playwright.sync_api import Response
+
 from twitfetch.errors import InvalidLoginError
-from twitfetch._utils import convert_string_to_datetime
+from twitfetch._utils import (
+    convert_string_to_datetime,
+    generate_url,
+    parse_json
+)
 from twitfetch._browser import PlaywrightBrowser
 from twitfetch._parse import (
     ParseDOM,
     parse_tweets_response
 )
-from twitfetch.typing import (
-    GraphQLResponse, 
-    Tweets
-)
+from twitfetch.typing import Tweets
 from twitfetch._constants import (
     Endpoints,
     GRAPHQL_ENDPOINT,
     LOGIN,
     LOGIN_ERROR,
-    TWITTER_LISTS,
-    TWITTER_LOGIN
+    URL_TWITTER,
+    URL_TWITTER_LISTS,
+    URL_TWITTER_LOGIN
 )
 
 class ResponseCallback:
@@ -30,19 +34,19 @@ class ResponseCallback:
     """
     def __init__(self, endpoint: Endpoints):
         self._endpoint = endpoint
-        self.response: dict = None
+        self.responses: List[Response] = []
 
-    def callback(self, response: GraphQLResponse) -> None:
+    def callback(self, response: Response) -> None:
         """
         Callback for interception of GraphQL response.
 
         Args:
-            response (GraphQLResponse): The response from network request.
+            response (Response): The response from network request.
         """
 
         if GRAPHQL_ENDPOINT in response.url and self._endpoint.value in response.url:
             if response.status == 200:
-                self.response = response.json()
+                self.responses.append(response)
 
 class TwitFetch:
     """
@@ -66,7 +70,6 @@ class TwitFetch:
         _time_start_datetime (datetime): .
         _time_end_datetime (datetime): .
         _browser (PlaywrightBrowser): .
-        tweets (Tweets): .
     """
     def __init__(
         self, 
@@ -90,8 +93,6 @@ class TwitFetch:
         # Instantiate playwright browser
         self._browser = PlaywrightBrowser(headless=headless)
 
-        self.tweets: Tweets = []
-
         # Login using account into Twitter
         self.twitter_login()
 
@@ -103,10 +104,10 @@ class TwitFetch:
             list_id (str): A string being the ID of the Twitter list.
         """
 
-        list_url = f'{TWITTER_LISTS}{list_id}'
+        list_url = generate_url(url=URL_TWITTER_LISTS, path=list_id)
         response = self._query(url=list_url, endpoint=Endpoints.ListLatestTweetsTimeline)
 
-    def user_tweets(self, account: str) -> None:
+    def user_tweets(self, account: str) -> Tweets:
         """
         Access the UserTweets endpoint to grab latest tweets from a Twitter account.
 
@@ -114,12 +115,18 @@ class TwitFetch:
             account (str): A string being the screen name of a Twitter account.
         """
 
-        account_url = f'https://twitter.com/{account}'
+        account_url = generate_url(url=URL_TWITTER, path=account)
         response = self._query(url=account_url, endpoint=Endpoints.UserTweets)
 
-        # Parse tweets response
-        print(response)
+        # Parse response to extract tweets and details
+        tweets = parse_tweets_response(
+            tweets=response,
+            users=[account],
+            do_remove_retweets=True
+        )
 
+        return tweets
+    
     def twitter_login(self) -> None:
         """
         Login to Twitter account using information provided in config file.
@@ -131,13 +138,11 @@ class TwitFetch:
         ]
 
         # Go to Twitter login page and wait some time
-        self._browser.go_to_page(url=TWITTER_LOGIN)
+        self._browser.go_to_page(url=URL_TWITTER_LOGIN)
         time.sleep(2)
 
         # Iterate through login pipeline
         for info in login_pipeline:
-
-            # Retrieve page source
             page_source = self._browser.page_to_dom()
 
             # Parse and find label
@@ -162,7 +167,7 @@ class TwitFetch:
             if alerts:
                 raise InvalidLoginError()
 
-    def _query(self, url: str, endpoint: Endpoints) -> dict:
+    def _query(self, url: str, endpoint: Endpoints) -> List[Response]:
         """
         Given an endpoint, will query and retrieve response from GraphQL.
 
@@ -181,8 +186,10 @@ class TwitFetch:
         self._browser.go_to_page(url=url, wait_for_tweet=True)
 
         # Loop until the response is found
-        while response_callback.response is None:
+        while not response_callback.responses:
             time.sleep(0.2)
 
-        return response_callback.response
+        # Parse response and extract JSON
+        response = parse_json(responses=response_callback.responses)
+        return response
         
